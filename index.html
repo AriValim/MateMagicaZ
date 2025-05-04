@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MateMágica - Aprenda Matemática se Divertindo!</title>
+  <link rel="stylesheet" href="style.css">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Comic+Neue:wght@400;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+
+<body>
+  <div id="welcome-screen" class="screen active">
+    <div class="container">
+      <h1 class="game-title">MateMágica</h1>
+      <p class="subtitle">Aprenda matemática de forma divertida!</p>
+
+      <div class="welcome-options">
+        <div class="player-setup">
+          <h2>Quem vai jogar?</h2>
+          <div id="players-container">
+            <div class="player-input">
+              <input type="text" placeholder="Nome do jogador" class="player-name">
+              <button class="remove-player"><i class="fas fa-times"></i></button>
+            </div>
+          </div>
+          <button id="add-player" class="btn-add"><i class="fas fa-plus"></i> Adicionar jogador</button>
+        </div>
+
+        <div class="game-setup">
+          <h2>Configurações do jogo</h2>
+          <div class="setup-option">
+            <label for="difficulty">Nível de dificuldade:</label>
+            <select id="difficulty">
+              <option value="facil">Fácil</option>
+              <option value="medio">Médio</option>
+              <option value="dificil">Difícil</option>
+            </select>
+          </div>
+
+          <div class="setup-option">
+            <label for="num-questions">Número de questões:</label>
+            <input type="number" id="num-questions" min="5" max="20" value="10">
+          </div>
+
+          <div class="setup-option">
+            <label>Operações:</label>
+            <div class="operations-checkbox">
+
+              <label for="addition">
+                <input type="checkbox" id="addition" checked> Adição
+              </label>
+
+              <label for="subtraction">
+                <input type="checkbox" id="subtraction" checked> Subtração
+              </label>
+
+              <label for="multiplication"> <input type="checkbox" id="multiplication" checked>
+                Multiplicação</label>
+
+              <label for="division">
+                <input type="checkbox" id="division" checked>
+                Divisão</label>
+
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <button id="start-game" class="btn-primary">Começar Jogo!</button>
+    </div>
+  </div>
+
+  <div id="game-screen" class="screen">
+    <div class="container">
+      <div class="game-header">
+        <h2 id="current-player">Jogador: </h2>
+        <div class="game-info">
+          <span id="question-counter">Questão 1 de 10</span>
+          <span id="score-display">Pontos: 0</span>
+          <div id="timer">Tempo: <span id="time-left">30</span>s</div>
+        </div>
+      </div>
+
+      <div class="question-container">
+        <div class="question-bubble">
+          <p id="question">Quanto é 5 + 3?</p>
+        </div>
+
+        <div class="answer-container">
+          <input type="number" id="answer-input" placeholder="Sua resposta">
+          <button id="submit-answer" class="btn-primary">Responder</button>
+        </div>
+
+        <div id="feedback" class="feedback hidden"></div>
+      </div>
+
+      <div class="operations-icons">
+        <span class="operation-icon tooltip" data-op="addition" data-tooltip="Adição">+</span>
+        <span class="operation-icon tooltip" data-op="subtraction" data-tooltip="Subtração">-</span>
+        <span class="operation-icon tooltip" data-op="multiplication" data-tooltip="Multiplicação">&times;</span>
+        <span class="operation-icon tooltip" data-op="division" data-tooltip="Divisão">&divide;</span>
+      </div>
+    </div>
+  </div>
+
+  <div id="results-screen" class="screen">
+    <div class="container">
+      <h1>Resultados Finais</h1>
+
+      <div class="results-container">
+        <div class="fireworks"></div>
+        <div id="player-results"></div>
+
+        <div class="stats-summary">
+          <h3>Estatísticas:</h3>
+          <div id="total-correct">Respostas corretas: 0</div>
+          <div id="accuracy">Precisão: 0%</div>
+          <div id="avg-time">Tempo médio por questão: 0s</div>
+        </div>
+      </div>
+
+      <div class="results-chart-container">
+        <h2>Desempenho dos Jogadores</h2>
+        <canvas id="performanceChart"></canvas>
+      </div>
+
+      <div class="buttons">
+        <button id="play-again">Jogar Novamente</button>
+        <button id="return-home">Voltar para o Início</button>
+      </div>
+    </div>
+  </div>
+
+  <audio id="correct-sound" src="https://cdn.freesound.org/previews/131/131660_2398403-lq.mp3" preload="auto"></audio>
+  <audio id="wrong-sound" src="https://cdn.freesound.org/previews/142/142608_1840739-lq.mp3" preload="auto"></audio>
+  <audio id="win-sound" src="https://cdn.freesound.org/previews/270/270402_5123851-lq.mp3" preload="auto"></audio>
+
+  <script src="script.js"></script>
+</body>
+
+</html>

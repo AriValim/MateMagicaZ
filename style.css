@@ -1,0 +1,528 @@
+/* Estilos gerais para o jogo MateMágica */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: "Comic Neue", cursive;
+}
+
+body {
+  background-color: #e9f7ff;
+  background-image: linear-gradient(45deg, #e9f7ff 0%, #d0f0f7 100%);
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.container {
+  width: 100%;
+  max-width: 800px;
+  padding: 20px;
+  margin: 0 auto;
+}
+
+/* Estilos para as diferentes telas do jogo */
+.screen {
+  display: none;
+  width: 100%;
+  height: 100%;
+  animation: fadeIn 0.5s ease;
+}
+
+.screen.active {
+  display: block;
+}
+
+/* Estilo para os títulos e texto */
+h1,
+h2,
+h3 {
+  color: #2c3e50;
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.game-title {
+  font-size: 3.5rem;
+  color: #3498db;
+  text-shadow: 3px 3px 0 #f39c12;
+  letter-spacing: 2px;
+  margin-bottom: 10px;
+}
+
+.subtitle {
+  text-align: center;
+  font-size: 1.2rem;
+  color: #7f8c8d;
+  margin-bottom: 30px;
+}
+
+/* Estilos dos botões */
+button {
+  cursor: pointer;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 15px;
+  font-size: 1rem;
+  transition: all 0.3s ease;
+}
+
+.btn-primary {
+  background-color: #2ecc71;
+  color: white;
+  font-weight: bold;
+  padding: 12px 24px;
+  font-size: 1.2rem;
+  box-shadow: 0 4px 0 #27ae60;
+}
+
+.btn-primary:hover {
+  background-color: #27ae60;
+  transform: translateY(2px);
+  box-shadow: 0 2px 0 #219653;
+}
+
+.btn-secondary {
+  background-color: #3498db;
+  color: white;
+  font-weight: bold;
+  box-shadow: 0 4px 0 #2980b9;
+}
+
+.btn-secondary:hover {
+  background-color: #2980b9;
+  transform: translateY(2px);
+  box-shadow: 0 2px 0 #2073a1;
+}
+
+.btn-add {
+  background-color: #9b59b6;
+  color: white;
+  margin-top: 10px;
+  font-size: 0.9rem;
+  box-shadow: 0 3px 0 #8e44ad;
+}
+
+.btn-add:hover {
+  background-color: #8e44ad;
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 #7d3c98;
+}
+
+/* Estilos para tela de boas-vindas */
+.welcome-options {
+  display: flex;
+  flex-direction: column;
+  gap: 30px;
+  margin-bottom: 30px;
+}
+
+.player-setup,
+.game-setup {
+  background-color: white;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+}
+
+.player-input {
+  display: flex;
+  margin-bottom: 10px;
+  align-items: center;
+}
+
+.player-name {
+  flex-grow: 1;
+  padding: 10px;
+  border: 2px solid #e0e0e0;
+  border-radius: 6px;
+  font-size: 1rem;
+  margin-right: 10px;
+}
+
+.remove-player {
+  background-color: #e74c3c;
+  color: white;
+  border-radius: 50%;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8rem;
+}
+
+.setup-option {
+  margin-bottom: 15px;
+}
+
+.setup-option label {
+  display: block;
+  margin-bottom: 5px;
+  color: #34495e;
+  font-weight: bold;
+}
+
+.setup-option select,
+.setup-option input[type="number"] {
+  width: 100%;
+  padding: 10px;
+  border: 2px solid #e0e0e0;
+  border-radius: 6px;
+  font-size: 1rem;
+}
+
+.operations-checkbox {
+  display: flex;
+  flex-direction: column; /* Organiza os itens em coluna */
+  gap: 10px; /* Espaçamento vertical entre os itens */
+}
+
+.operations-checkbox label {
+  display: flex;
+  align-items: center; /* Alinha verticalmente o checkbox e o texto DENTRO do label */
+  margin: 0; /* Remove qualquer margem desnecessária do label */
+}
+
+.operations-checkbox input[type="checkbox"] {
+  margin-right: 5px; /* Espaçamento entre o checkbox e o texto */
+}
+
+#start-game {
+  display: block;
+  margin: 0 auto;
+  font-size: 1.3rem;
+  padding: 15px 30px;
+}
+
+/* Estilos para tela do jogo */
+.game-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.game-info {
+  display: flex;
+  gap: 15px;
+  font-weight: bold;
+  font-size: 1.1rem;
+}
+
+#timer {
+  color: #e74c3c;
+}
+
+.question-container {
+  background-color: white;
+  border-radius: 12px;
+  padding: 30px;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+  margin-bottom: 20px;
+  position: relative;
+}
+
+.question-bubble {
+  background-color: #f8f9fa;
+  border-radius: 20px;
+  padding: 20px;
+  text-align: center;
+  margin-bottom: 20px;
+  border: 3px solid #3498db;
+  font-size: 1.8rem;
+  font-weight: bold;
+  color: #2c3e50;
+}
+
+.answer-container {
+  display: flex;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+#answer-input {
+  flex-grow: 1;
+  padding: 12px;
+  font-size: 1.5rem;
+  border: 3px solid #e0e0e0;
+  border-radius: 8px;
+  text-align: center;
+}
+
+.feedback {
+  text-align: center;
+  padding: 15px;
+  border-radius: 8px;
+  margin-top: 20px;
+  font-weight: bold;
+  font-size: 1.2rem;
+  transition: all 0.3s ease;
+}
+
+.feedback.correct {
+  background-color: #d4edda;
+  color: #155724;
+  border: 2px solid #c3e6cb;
+}
+
+.feedback.incorrect {
+  background-color: #f8d7da;
+  color: #721c24;
+  border: 2px solid #f5c6cb;
+}
+
+.hidden {
+  display: none;
+}
+
+.operations-icons {
+  display: flex;
+  justify-content: space-around;
+  margin-top: 30px;
+}
+
+.operation-icon {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+  font-weight: bold;
+  color: white;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  transition: all 0.3s ease;
+}
+
+.operation-icon {
+  background-color: #cccccc;
+  color: #555555;
+  transition: background-color 0.2s ease-in-out, transform 0.2s ease-in-out,
+    box-shadow 0.2s ease-in-out, color 0.2s ease-in-out;
+  transform-origin: center center; /* Garante que a escala e rotação ocorram a partir do centro */
+  position: relative; /* Necessário para posicionar o tooltip */
+  cursor: help; /* Indica que há uma dica */
+}
+
+.operation-icon:hover {
+  background-color: #e0e0e0; /* Um cinza um pouco mais claro no hover */
+  transform: scale(1.1); /* Leve aumento no hover */
+}
+
+.operation-icon[data-op="addition"].active {
+  background-color: #e74c3c;
+  transform: scale(1.5);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.5);
+  color: #ffffff;
+  /* Adicionando uma leve "pulsada" na ativação */
+  animation: pulse 0.5s ease-in-out infinite alternate;
+}
+
+.operation-icon[data-op="subtraction"].active {
+  background-color: #3498db;
+  transform: scale(1.5);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.5);
+  color: #ffffff;
+  animation: pulse 0.5s ease-in-out infinite alternate;
+}
+
+.operation-icon[data-op="multiplication"].active {
+  background-color: #2ecc71;
+  transform: scale(1.5);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.5);
+  color: #ffffff;
+  animation: pulse 0.5s ease-in-out infinite alternate;
+}
+
+.operation-icon[data-op="division"].active {
+  background-color: #f39c12;
+  transform: scale(1.5);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.5);
+  color: #ffffff;
+  animation: pulse 0.5s ease-in-out infinite alternate;
+}
+
+/* Definição da animação "pulse" */
+@keyframes pulse {
+  from {
+    transform: scale(1.5);
+    opacity: 1;
+  }
+  to {
+    transform: scale(1.6);
+    opacity: 0.8;
+  }
+}
+
+/* Estilos para o tooltip */
+.operation-icon::before {
+  content: attr(data-tooltip); /* Pega o texto do atributo data-tooltip */
+  position: absolute;
+  bottom: -120%; /* Posiciona abaixo do elemento */
+  left: 50%;
+  transform: translateX(-50%); /* Centraliza horizontalmente */
+  background-color: rgba(0, 0, 0, 0.5);
+  color: white;
+  padding: 5px 10px;
+  border-radius: 5px;
+  font-size: 0.8em;
+  white-space: nowrap;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.3s ease-in-out, visibility 0.3s ease-in-out;
+}
+
+.operation-icon::after {
+  content: ""; /* Cria o "ponteiro" do balão */
+  position: absolute;
+  top: 100%; /* Posiciona abaixo do texto do tooltip */
+  left: 50%;
+  transform: translateX(-50%);
+  border-width: 5px;
+  border-style: solid;
+  border-color: rgba(0, 0, 0, 0.8) transparent transparent transparent;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.3s ease-in-out, visibility 0.3s ease-in-out;
+}
+
+.operation-icon:hover::before,
+.operation-icon:hover::after {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* Estilos para tela de resultados */
+.results-container {
+  background-color: white;
+  border-radius: 12px;
+  padding: 30px;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+  margin-bottom: 30px;
+  position: relative;
+  overflow: hidden;
+}
+
+.fireworks {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 0;
+}
+
+#player-results {
+  margin-bottom: 30px;
+  position: relative;
+  z-index: 1;
+}
+
+.player-result {
+  display: flex;
+  justify-content: space-between;
+  padding: 15px;
+  border-radius: 8px;
+  margin-bottom: 10px;
+  background-color: #f8f9fa;
+  border-left: 5px solid #3498db;
+}
+
+.player-name-result {
+  font-weight: bold;
+  font-size: 1.2rem;
+}
+
+.player-score {
+  font-weight: bold;
+  color: #2ecc71;
+}
+
+.stats-summary {
+  border-top: 2px dashed #e0e0e0;
+  padding-top: 20px;
+  margin-top: 20px;
+}
+
+.stats-summary div {
+  margin-bottom: 10px;
+  font-size: 1.1rem;
+}
+
+.result-actions {
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+}
+
+/* Animações */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.pulse {
+  animation: pulse 0.6s ease-in-out;
+}
+
+/* Responsividade */
+@media (min-width: 768px) {
+  .welcome-options {
+    flex-direction: row;
+  }
+
+  .player-setup,
+  .game-setup {
+    flex: 1;
+  }
+}
+
+@media (max-width: 767px) {
+  .game-title {
+    font-size: 2.5rem;
+  }
+
+  .game-header {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+
+  .game-info {
+    margin-top: 10px;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+  }
+
+  .answer-container {
+    flex-direction: column;
+  }
+
+  .operation-icon {
+    width: 50px;
+    height: 50px;
+    font-size: 1.5rem;
+  }
+}
