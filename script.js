@@ -1,6 +1,6 @@
 // =============== CONSTANTES E VARIÁVEIS GLOBAIS ===============
 
-// Elementos DOM
+// Elementos DOM - Armazenados em cache para melhorar performance
 const welcomeScreen = document.getElementById("welcome-screen");
 const gameScreen = document.getElementById("game-screen");
 const resultsScreen = document.getElementById("results-screen");
@@ -51,6 +51,16 @@ let gameStats = {
   totalQuestions: 0,
   totalTime: 0,
 }; // Estatísticas do jogo
+let lastTimerUpdate = 0; // Timestamp da última atualização do timer
+let isProcessingAnswer = false; // Flag para evitar múltiplas submissões
+
+// Cache para operações de mapeamento (melhora performance)
+const operationMapping = {
+  "+": "addition",
+  "-": "subtraction",
+  "×": "multiplication",
+  "÷": "division",
+};
 
 // =============== FUNÇÕES DE INICIALIZAÇÃO ===============
 
@@ -63,10 +73,10 @@ function initializeEvents() {
   startGameBtn.addEventListener("click", startGame);
 
   // Eventos da tela de jogo
-  submitAnswerBtn.addEventListener("click", checkAnswer);
+  submitAnswerBtn.addEventListener("click", handleAnswerSubmission);
   answerInput.addEventListener("keypress", function (e) {
     if (e.key === "Enter") {
-      checkAnswer();
+      handleAnswerSubmission();
     }
   });
 
@@ -171,6 +181,9 @@ function generateQuestion() {
   // Reinicia o tempo
   resetTimer();
 
+  // Reseta flag de processamento
+  isProcessingAnswer = false;
+
   // Limpa o campo de resposta e feedback
   answerInput.value = "";
   feedbackDisplay.classList.add("hidden");
@@ -191,12 +204,6 @@ function generateQuestion() {
   operationIcons.forEach((icon) => icon.classList.remove("active"));
 
   // Adiciona classe ativa ao ícone da operação atual
-  let operationMapping = {
-    "+": "addition",
-    "-": "subtraction",
-    "×": "multiplication",
-    "÷": "division",
-  };
   const currentIcon = document.querySelector(
     `.operation-icon[data-op="${operationMapping[operation]}"]`
   );
@@ -234,8 +241,7 @@ function generateQuestion() {
       difficulty === "facil" ? 10 : difficulty === "medio" ? 20 : 30
     );
     // Evita divisão por zero
-    num2 =
-      num2 === 0 ? getRandomInt(1, 5) * (Math.random() < 0.5 ? -1 : 1) : num2;
+    num2 = num2 === 0 ? getRandomInt(1, 5) * (Math.random() < 0.5 ? -1 : 1) : num2;
     num1 = num2 * quotient;
   }
 
@@ -256,15 +262,26 @@ function generateQuestion() {
   }
 
   // Exibe a questão com os números entre parênteses
-  const num1Str = `(${num1})`;
-  const num2Str = `(${num2})`;
+  const num1Str = num1 < 0 ? `(${num1})` : num1.toString();
+  const num2Str = num2 < 0 ? `(${num2})` : num2.toString();
   questionDisplay.textContent = `Quanto é ${num1Str} ${operation} ${num2Str}?`;
 
   // Dá foco ao campo de resposta
-  answerInput.focus();
+  setTimeout(() => {
+    answerInput.focus();
+  }, 0);
 
   // Inicia o timer
   startTimer();
+}
+
+/**
+ * Função intermediária para evitar múltiplas submissões
+ */
+function handleAnswerSubmission() {
+  if (isProcessingAnswer) return;
+  isProcessingAnswer = true;
+  checkAnswer();
 }
 
 /**
@@ -275,7 +292,7 @@ function checkAnswer() {
   clearInterval(gameTimer);
 
   // Obtém a resposta do jogador
-  const userAnswer = parseInt(answerInput.value);
+  const userAnswer = parseInt(answerInput.value) || null;
 
   // Verifica se a resposta está correta
   const isCorrect = userAnswer === correctAnswer;
@@ -335,15 +352,35 @@ function showFeedback(isCorrect, points) {
 
   if (isCorrect) {
     feedbackDisplay.textContent = `Correto! +${points} pontos`;
-    correctSound.currentTime = 0;
-    correctSound.play();
+    // Tenta reproduzir o som apenas se ele existir
+    if (correctSound && typeof correctSound.play === 'function') {
+      try {
+        correctSound.currentTime = 0;
+        correctSound.play().catch(e => {
+          console.log("Erro ao reproduzir som:", e);
+          // Ignora erro de reprodução (comum em mobile)
+        });
+      } catch (e) {
+        console.log("Erro ao manipular áudio:", e);
+      }
+    }
   } else {
     feedbackDisplay.textContent = `Incorreto! A resposta correta é ${correctAnswer}`;
-    wrongSound.currentTime = 0;
-    wrongSound.play();
+    // Tenta reproduzir o som apenas se ele existir
+    if (wrongSound && typeof wrongSound.play === 'function') {
+      try {
+        wrongSound.currentTime = 0;
+        wrongSound.play().catch(e => {
+          console.log("Erro ao reproduzir som:", e);
+          // Ignora erro de reprodução (comum em mobile)
+        });
+      } catch (e) {
+        console.log("Erro ao manipular áudio:", e);
+      }
+    }
   }
 
-  // Adiciona efeito de pulso
+  // Usa uma classe CSS para o efeito visual em vez de manipulação direta
   questionDisplay.classList.add("pulse");
   setTimeout(() => {
     questionDisplay.classList.remove("pulse");
@@ -354,8 +391,16 @@ function showFeedback(isCorrect, points) {
  * Finaliza o jogo e exibe a tela de resultados
  */
 function endGame() {
-  // Toca o som de vitória
-  winSound.play();
+  // Tenta tocar o som de vitória
+  if (winSound && typeof winSound.play === 'function') {
+    try {
+      winSound.play().catch(e => {
+        console.log("Erro ao reproduzir som de vitória:", e);
+      });
+    } catch (e) {
+      console.log("Erro ao manipular áudio:", e);
+    }
+  }
 
   // Ordena os jogadores por pontuação (do maior para o menor)
   players.sort((a, b) => b.score - a.score);
@@ -373,15 +418,18 @@ function endGame() {
     nameSpan.className = "player-name-result";
     nameSpan.textContent = `${index + 1}. ${player.name}`;
 
-    // Adiciona pontuação
-    const scoreSpan = document.createElement("span");
-    scoreSpan.className = "player-score";
-    scoreSpan.textContent = `${player.score} pontos`;
+    // Adiciona número de acertos
+    const correctSpan = document.createElement("span");
+    correctSpan.className = "player-correct";
+    correctSpan.textContent = `${player.correctAnswers} acertos`;
 
     playerResult.appendChild(nameSpan);
-    playerResult.appendChild(scoreSpan);
+    playerResult.appendChild(correctSpan);
     playerResultsContainer.appendChild(playerResult);
   });
+
+  // Desenha o gráfico usando requestAnimationFrame para melhor performance
+  setTimeout(() => renderChart(), 0);
 
   // Calcula e exibe estatísticas
   const accuracy = Math.round(
@@ -396,6 +444,102 @@ function endGame() {
 
   // Mostra a tela de resultados
   showScreen(resultsScreen);
+}
+
+/**
+ * Renderiza o gráfico de performance separado da função endGame
+ * para melhor performance
+ */
+function renderChart() {
+  try {
+    // Prepara os dados para o gráfico de acertos
+    const playerNames = players.map((player) => player.name);
+    const correctAnswers = players.map((player) => player.correctAnswers);
+
+    // Obtém o contexto 2D do canvas
+    const chartCanvas = document.getElementById("performanceChart");
+    
+    if (!chartCanvas) {
+      console.warn("Canvas para gráfico não encontrado");
+      return;
+    }
+    
+    const ctx = chartCanvas.getContext("2d");
+
+    // Destrói o gráfico anterior se existir
+    if (window.performanceChart instanceof Chart) {
+      window.performanceChart.destroy();
+    }
+
+    // Cria o gráfico de barras para o número de acertos
+    window.performanceChart = new Chart(ctx, {
+      type: "bar",
+      data: {
+        labels: playerNames,
+        datasets: [
+          {
+            label: "Acertos",
+            data: correctAnswers,
+            backgroundColor: [
+              "rgba(46, 204, 113, 0.6)", // Cor verde para acertos
+              "rgba(52, 152, 219, 0.6)",
+              "rgba(241, 196, 15, 0.6)",
+              "rgba(155, 89, 182, 0.6)",
+              "rgba(230, 126, 34, 0.6)",
+              "rgba(26, 188, 156, 0.6)",
+            ],
+            borderColor: [
+              "rgba(46, 204, 113, 1)",
+              "rgba(52, 152, 219, 1)",
+              "rgba(241, 196, 15, 1)",
+              "rgba(155, 89, 182, 1)",
+              "rgba(230, 126, 34, 1)",
+              "rgba(26, 188, 156, 1)",
+            ],
+            borderWidth: 1,
+          },
+        ],
+      },
+      options: {
+        scales: {
+          y: {
+            beginAtZero: true,
+            title: {
+              display: true,
+              text: "Número de Acertos",
+            },
+            ticks: {
+              stepSize: 1, // Garante que os ticks sejam números inteiros (contagem de acertos)
+            },
+          },
+          x: {
+            title: {
+              display: true,
+              text: "Jogadores",
+            },
+          },
+        },
+        plugins: {
+          legend: {
+            display: false,
+          },
+          title: {
+            display: true,
+            text: "Desempenho dos Jogadores (Acertos)",
+            font: {
+              size: 16,
+            },
+          },
+        },
+        // Desativa a animação para melhor performance
+        animation: {
+          duration: 0,
+        },
+      },
+    });
+  } catch (e) {
+    console.error("Erro ao renderizar gráfico:", e);
+  }
 }
 
 /**
@@ -434,6 +578,8 @@ function resetGame() {
  * Retorna à tela inicial
  */
 function returnToHome() {
+  // Limpa qualquer timer pendente
+  clearInterval(gameTimer);
   showScreen(welcomeScreen);
 }
 
@@ -476,31 +622,47 @@ function updateScore() {
 }
 
 /**
- * Inicia o timer para a questão atual
+ * Inicia o timer para a questão atual com otimizações
  */
 function startTimer() {
   timeRemaining = 30;
   timeLeftDisplay.textContent = timeRemaining;
+  lastTimerUpdate = Date.now();
 
   clearInterval(gameTimer);
   gameTimer = setInterval(() => {
-    timeRemaining--;
+    // Calcula o tempo decorrido desde a última atualização
+    const now = Date.now();
+    const elapsed = (now - lastTimerUpdate) / 1000;
+    lastTimerUpdate = now;
+    
+    // Se houver um atraso significativo, ajusta o tempo
+    if (elapsed > 1.5) {
+      timeRemaining -= Math.floor(elapsed);
+    } else {
+      timeRemaining--;
+    }
+    
+    // Não permite tempo negativo
+    if (timeRemaining < 0) timeRemaining = 0;
+    
     timeLeftDisplay.textContent = timeRemaining;
 
     // Efeito visual de urgência quando o tempo está acabando
+    // Usa classes CSS em vez de manipulação direta do estilo
     if (timeRemaining <= 5) {
-      timeLeftDisplay.style.color = "#e74c3c";
-      timeLeftDisplay.style.fontWeight = "bold";
+      timeLeftDisplay.classList.add("time-critical");
     } else {
-      timeLeftDisplay.style.color = "";
-      timeLeftDisplay.style.fontWeight = "";
+      timeLeftDisplay.classList.remove("time-critical");
     }
 
     // Tempo esgotado
     if (timeRemaining <= 0) {
       clearInterval(gameTimer);
       // Resposta automática incorreta
-      checkAnswer();
+      if (!isProcessingAnswer) {
+        handleAnswerSubmission();
+      }
     }
   }, 1000);
 }
@@ -511,8 +673,7 @@ function startTimer() {
 function resetTimer() {
   timeRemaining = 30;
   timeLeftDisplay.textContent = timeRemaining;
-  timeLeftDisplay.style.color = "";
-  timeLeftDisplay.style.fontWeight = "";
+  timeLeftDisplay.classList.remove("time-critical");
   clearInterval(gameTimer);
 }
 
@@ -550,127 +711,7 @@ function calculatePoints(timeUsed) {
 
   return basePoints + timeBonus;
 }
-/**
- * Finaliza o jogo e exibe a tela de resultados
- */
-/**
- * Finaliza o jogo e exibe a tela de resultados
- */
-function endGame() {
-  // Toca o som de vitória
-  winSound.play();
 
-  // Ordena os jogadores por pontuação (do maior para o menor)
-  players.sort((a, b) => b.score - a.score);
-
-  // Limpa o container de resultados
-  playerResultsContainer.innerHTML = "";
-
-  // Prepara os dados para o gráfico de acertos
-  const playerNames = players.map((player) => player.name);
-  const correctAnswers = players.map((player) => player.correctAnswers);
-
-  // Obtém o contexto 2D do canvas
-  const chartCanvas = document.getElementById("performanceChart");
-  const ctx = chartCanvas.getContext("2d");
-
-  // Cria o gráfico de barras para o número de acertos
-  new Chart(ctx, {
-    type: "bar",
-    data: {
-      labels: playerNames,
-      datasets: [
-        {
-          label: "Acertos",
-          data: correctAnswers,
-          backgroundColor: [
-            "rgba(46, 204, 113, 0.6)", // Cor verde para acertos
-            "rgba(52, 152, 219, 0.6)",
-            "rgba(241, 196, 15, 0.6)",
-            "rgba(155, 89, 182, 0.6)",
-            "rgba(230, 126, 34, 0.6)",
-            "rgba(26, 188, 156, 0.6)",
-          ],
-          borderColor: [
-            "rgba(46, 204, 113, 1)",
-            "rgba(52, 152, 219, 1)",
-            "rgba(241, 196, 15, 1)",
-            "rgba(155, 89, 182, 1)",
-            "rgba(230, 126, 34, 1)",
-            "rgba(26, 188, 156, 1)",
-          ],
-          borderWidth: 1,
-        },
-      ],
-    },
-    options: {
-      scales: {
-        y: {
-          beginAtZero: true,
-          title: {
-            display: true,
-            text: "Número de Acertos",
-          },
-          ticks: {
-            stepSize: 1, // Garante que os ticks sejam números inteiros (contagem de acertos)
-          },
-        },
-        x: {
-          title: {
-            display: true,
-            text: "Jogadores",
-          },
-        },
-      },
-      plugins: {
-        legend: {
-          display: false,
-        },
-        title: {
-          display: true,
-          text: "Desempenho dos Jogadores (Acertos)",
-          font: {
-            size: 16,
-          },
-        },
-      },
-    },
-  });
-
-  // Adiciona resultados de cada jogador (texto)
-  players.forEach((player, index) => {
-    const playerResult = document.createElement("div");
-    playerResult.className = "player-result";
-
-    // Adiciona posição e nome
-    const nameSpan = document.createElement("span");
-    nameSpan.className = "player-name-result";
-    nameSpan.textContent = `${index + 1}. ${player.name}`;
-
-    // Adiciona número de acertos
-    const correctSpan = document.createElement("span");
-    correctSpan.className = "player-correct";
-    correctSpan.textContent = `${player.correctAnswers} acertos`;
-
-    playerResult.appendChild(nameSpan);
-    playerResult.appendChild(correctSpan);
-    playerResultsContainer.appendChild(playerResult);
-  });
-
-  // Calcula e exibe estatísticas (texto)
-  const accuracy = Math.round(
-    (gameStats.totalCorrect / gameStats.totalQuestions) * 100
-  );
-  const avgTime =
-    Math.round((gameStats.totalTime / gameStats.totalQuestions) * 10) / 10;
-
-  totalCorrectDisplay.textContent = `Respostas corretas: ${gameStats.totalCorrect} de ${gameStats.totalQuestions}`;
-  accuracyDisplay.textContent = `Precisão: ${accuracy}%`;
-  avgTimeDisplay.textContent = `Tempo médio por questão: ${avgTime}s`;
-
-  // Mostra a tela de resultados
-  showScreen(resultsScreen);
-}
 /**
  * Gera um número inteiro aleatório entre min e max (inclusive)
  * @param {number} min - Valor mínimo
@@ -685,3 +726,33 @@ function getRandomInt(min, max) {
 
 // Inicializa o jogo quando a página carregar
 document.addEventListener("DOMContentLoaded", initializeEvents);
+
+// Adicionar esta CSS no seu arquivo de estilo
+/*
+.time-critical {
+  color: #e74c3c;
+  font-weight: bold;
+}
+
+.pulse {
+  animation: pulse-animation 0.6s;
+}
+
+@keyframes pulse-animation {
+  0% {
+    transform: scale(1);
+  }
+  25% {
+    transform: scale(1.1);
+  }
+  50% {
+    transform: scale(1);
+  }
+  75% {
+    transform: scale(1.05);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+*/
