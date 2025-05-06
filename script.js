@@ -306,18 +306,14 @@ function generateQuestion() {
 /**
  * Função intermediária para evitar múltiplas submissões
  */
-function handleAnswerSubmission() {
-  if (isProcessingAnswer) return;
-  isProcessingAnswer = true;
-  checkAnswer();
-}
-
 /**
  * Verifica a resposta do jogador
  */
 function checkAnswer() {
   // Obtém a resposta do jogador
-  const userAnswer = parseInt(answerInput.value) || null;
+  // CORREÇÃO: Tratamento especial para quando a resposta é zero
+  const userInput = answerInput.value.trim();
+  const userAnswer = userInput === "" ? null : parseInt(userInput);
 
   // Verifica se a resposta está correta
   const isCorrect = userAnswer === correctAnswer;
@@ -369,7 +365,6 @@ function checkAnswer() {
     }
   }, 2000); // Espera 2 segundos antes da próxima questão
 }
-
 /**
  * Exibe feedback visual e sonoro para a resposta
  * @param {boolean} isCorrect - Indica se a resposta está correta
