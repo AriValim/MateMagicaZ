@@ -418,13 +418,33 @@ function endGame() {
     nameSpan.className = "player-name-result";
     nameSpan.textContent = `${index + 1}. ${player.name}`;
 
+    // Adiciona container para as estatísticas
+    const statsContainer = document.createElement("div");
+    statsContainer.className = "player-stats";
+
+    // Adiciona pontos
+    const pointsSpan = document.createElement("span");
+    pointsSpan.className = "player-points";
+    pointsSpan.innerHTML = `<strong>Pontos:</strong> ${player.score}`;
+
     // Adiciona número de acertos
     const correctSpan = document.createElement("span");
     correctSpan.className = "player-correct";
-    correctSpan.textContent = `${player.correctAnswers} acertos`;
+    correctSpan.innerHTML = `<strong>Acertos:</strong> ${player.correctAnswers}`;
+
+    // Adiciona taxa de acerto
+    const accuracySpan = document.createElement("span");
+    accuracySpan.className = "player-accuracy";
+    const playerAccuracy = Math.round((player.correctAnswers / totalQuestions) * 100);
+    accuracySpan.innerHTML = `<strong>Taxa:</strong> ${playerAccuracy}%`;
+
+    // Adiciona tudo ao container de estatísticas
+    statsContainer.appendChild(pointsSpan);
+    statsContainer.appendChild(correctSpan);
+    statsContainer.appendChild(accuracySpan);
 
     playerResult.appendChild(nameSpan);
-    playerResult.appendChild(correctSpan);
+    playerResult.appendChild(statsContainer);
     playerResultsContainer.appendChild(playerResult);
   });
 
@@ -452,9 +472,10 @@ function endGame() {
  */
 function renderChart() {
   try {
-    // Prepara os dados para o gráfico de acertos
+    // Prepara os dados para o gráfico
     const playerNames = players.map((player) => player.name);
     const correctAnswers = players.map((player) => player.correctAnswers);
+    const playerScores = players.map((player) => player.score);
 
     // Obtém o contexto 2D do canvas
     const chartCanvas = document.getElementById("performanceChart");
@@ -471,7 +492,18 @@ function renderChart() {
       window.performanceChart.destroy();
     }
 
-    // Cria o gráfico de barras para o número de acertos
+    // Cores para os datasets
+    const acertosColors = {
+      backgroundColor: "rgba(46, 204, 113, 0.6)", // Verde
+      borderColor: "rgba(46, 204, 113, 1)"
+    };
+    
+    const pontosColors = {
+      backgroundColor: "rgba(52, 152, 219, 0.6)", // Azul
+      borderColor: "rgba(52, 152, 219, 1)"
+    };
+
+    // Cria o gráfico de barras para acertos e pontos
     window.performanceChart = new Chart(ctx, {
       type: "bar",
       data: {
@@ -480,37 +512,49 @@ function renderChart() {
           {
             label: "Acertos",
             data: correctAnswers,
-            backgroundColor: [
-              "rgba(46, 204, 113, 0.6)", // Cor verde para acertos
-              "rgba(52, 152, 219, 0.6)",
-              "rgba(241, 196, 15, 0.6)",
-              "rgba(155, 89, 182, 0.6)",
-              "rgba(230, 126, 34, 0.6)",
-              "rgba(26, 188, 156, 0.6)",
-            ],
-            borderColor: [
-              "rgba(46, 204, 113, 1)",
-              "rgba(52, 152, 219, 1)",
-              "rgba(241, 196, 15, 1)",
-              "rgba(155, 89, 182, 1)",
-              "rgba(230, 126, 34, 1)",
-              "rgba(26, 188, 156, 1)",
-            ],
+            backgroundColor: acertosColors.backgroundColor,
+            borderColor: acertosColors.borderColor,
             borderWidth: 1,
+            order: 1
           },
+          {
+            label: "Pontos",
+            data: playerScores,
+            backgroundColor: pontosColors.backgroundColor,
+            borderColor: pontosColors.borderColor,
+            borderWidth: 1,
+            order: 0,
+            yAxisID: 'y1'
+          }
         ],
       },
       options: {
+        responsive: true,
         scales: {
           y: {
             beginAtZero: true,
+            position: 'left',
             title: {
               display: true,
               text: "Número de Acertos",
             },
             ticks: {
-              stepSize: 1, // Garante que os ticks sejam números inteiros (contagem de acertos)
+              stepSize: 1, // Garante que os ticks sejam números inteiros
             },
+            grid: {
+              display: true
+            }
+          },
+          y1: {
+            beginAtZero: true,
+            position: 'right',
+            title: {
+              display: true,
+              text: "Pontuação Total",
+            },
+            grid: {
+              display: false
+            }
           },
           x: {
             title: {
@@ -521,15 +565,28 @@ function renderChart() {
         },
         plugins: {
           legend: {
-            display: false,
+            display: true,
+            position: 'top'
           },
           title: {
             display: true,
-            text: "Desempenho dos Jogadores (Acertos)",
+            text: "Desempenho dos Jogadores",
             font: {
               size: 16,
             },
           },
+          tooltip: {
+            callbacks: {
+              label: function(context) {
+                let label = context.dataset.label || '';
+                if (label) {
+                  label += ': ';
+                }
+                label += context.raw;
+                return label;
+              }
+            }
+          }
         },
         // Desativa a animação para melhor performance
         animation: {
