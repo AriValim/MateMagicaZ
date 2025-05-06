@@ -42,7 +42,8 @@ let currentPlayerIndex = 0; // Índice do jogador atual
 let currentQuestion = 0; // Número da questão atual
 let totalQuestions = 10; // Total de questões
 let gameTimer = null; // Timer para contagem regressiva
-let timeRemaining = 30; // Tempo para responder (em segundos)
+let gameStartTime = 0; // Timestamp do início do jogo
+let currentQuestionStartTime = 0; // Timestamp do início da questão atual
 let difficulty = "facil"; // Nível de dificuldade
 let correctAnswer = null; // Resposta correta da questão atual
 let currentOperation = ""; // Operação atual (adição, subtração, etc.)
@@ -53,6 +54,7 @@ let gameStats = {
 }; // Estatísticas do jogo
 let lastTimerUpdate = 0; // Timestamp da última atualização do timer
 let isProcessingAnswer = false; // Flag para evitar múltiplas submissões
+let gameTimeElapsed = 0; // Tempo total decorrido do jogo em segundos
 
 // Cache para operações de mapeamento (melhora performance)
 const operationMapping = {
@@ -127,7 +129,7 @@ function startGame() {
         name: name,
         score: 0,
         correctAnswers: 0,
-        totalTime: 0,
+        questionsAnswerTime: [], // Armazena o tempo de resposta para cada questão
       });
     }
   });
@@ -159,14 +161,19 @@ function startGame() {
     totalQuestions: 0,
     totalTime: 0,
   };
+  gameTimeElapsed = 0;
 
   // Atualiza o display
   updatePlayerDisplay();
   updateQuestionCounter();
   scoreDisplay.textContent = `Pontos: 0`;
 
-  // Muda para a tela do jogo
+  // Muda para a tela do jogo e inicia o temporizador geral
   showScreen(gameScreen);
+  
+  // Inicia o temporizador geral
+  gameStartTime = Date.now();
+  startGameTimer();
 
   // Gera a primeira questão
   generateQuestion();
@@ -175,14 +182,38 @@ function startGame() {
 // =============== FUNÇÕES PRINCIPAIS DO JOGO ===============
 
 /**
+ * Inicia o temporizador geral do jogo
+ */
+function startGameTimer() {
+  lastTimerUpdate = Date.now();
+  gameTimer = setInterval(() => {
+    // Calcula o tempo decorrido desde a última atualização
+    const now = Date.now();
+    const elapsed = (now - lastTimerUpdate) / 1000;
+    lastTimerUpdate = now;
+    
+    // Atualiza o tempo total decorrido
+    gameTimeElapsed += elapsed;
+    
+    // Formata o tempo para exibição (minutos:segundos)
+    const minutes = Math.floor(gameTimeElapsed / 60);
+    const seconds = Math.floor(gameTimeElapsed % 60);
+    const formattedTime = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    
+    // Atualiza o display de tempo
+    timeLeftDisplay.textContent = formattedTime;
+  }, 1000);
+}
+
+/**
  * Gera uma nova questão matemática baseada no nível de dificuldade
  */
 function generateQuestion() {
-  // Reinicia o tempo
-  resetTimer();
-
   // Reseta flag de processamento
   isProcessingAnswer = false;
+
+  // Registra o momento de início da questão atual
+  currentQuestionStartTime = Date.now();
 
   // Limpa o campo de resposta e feedback
   answerInput.value = "";
@@ -270,9 +301,6 @@ function generateQuestion() {
   setTimeout(() => {
     answerInput.focus();
   }, 0);
-
-  // Inicia o timer
-  startTimer();
 }
 
 /**
@@ -288,32 +316,33 @@ function handleAnswerSubmission() {
  * Verifica a resposta do jogador
  */
 function checkAnswer() {
-  // Interrompe o timer
-  clearInterval(gameTimer);
-
   // Obtém a resposta do jogador
   const userAnswer = parseInt(answerInput.value) || null;
 
   // Verifica se a resposta está correta
   const isCorrect = userAnswer === correctAnswer;
 
-  // Calcula pontos e tempo utilizado
-  const timeUsed = 30 - timeRemaining;
-  const points = isCorrect ? calculatePoints(timeUsed) : 0;
+  // Calcula o tempo que o jogador levou para responder (em segundos)
+  const responseTime = (Date.now() - currentQuestionStartTime) / 1000;
+  
+  // Armazena o tempo de resposta para esta questão
+  players[currentPlayerIndex].questionsAnswerTime.push(responseTime);
+
+  // Calcula pontos com base na rapidez e dificuldade
+  const points = isCorrect ? calculatePoints(responseTime) : 0;
 
   // Atualiza os dados do jogador atual
   players[currentPlayerIndex].score += points;
   if (isCorrect) {
     players[currentPlayerIndex].correctAnswers++;
   }
-  players[currentPlayerIndex].totalTime += timeUsed;
 
   // Atualiza as estatísticas do jogo
   gameStats.totalQuestions++;
   if (isCorrect) {
     gameStats.totalCorrect++;
   }
-  gameStats.totalTime += timeUsed;
+  gameStats.totalTime += responseTime;
 
   // Exibe feedback
   showFeedback(isCorrect, points);
@@ -391,6 +420,12 @@ function showFeedback(isCorrect, points) {
  * Finaliza o jogo e exibe a tela de resultados
  */
 function endGame() {
+  // Para o temporizador geral
+  clearInterval(gameTimer);
+  
+  // Calcula o tempo total da partida
+  const totalGameTime = (Date.now() - gameStartTime) / 1000;
+
   // Tenta tocar o som de vitória
   if (winSound && typeof winSound.play === 'function') {
     try {
@@ -438,10 +473,17 @@ function endGame() {
     const playerAccuracy = Math.round((player.correctAnswers / totalQuestions) * 100);
     accuracySpan.innerHTML = `<strong>Taxa:</strong> ${playerAccuracy}%`;
 
+    // Adiciona tempo médio por resposta
+    const avgTimeSpan = document.createElement("span");
+    avgTimeSpan.className = "player-avg-time";
+    const avgTime = player.questionsAnswerTime.reduce((acc, time) => acc + time, 0) / player.questionsAnswerTime.length;
+    avgTimeSpan.innerHTML = `<strong>Tempo médio:</strong> ${avgTime.toFixed(1)}s`;
+
     // Adiciona tudo ao container de estatísticas
     statsContainer.appendChild(pointsSpan);
     statsContainer.appendChild(correctSpan);
     statsContainer.appendChild(accuracySpan);
+    statsContainer.appendChild(avgTimeSpan);
 
     playerResult.appendChild(nameSpan);
     playerResult.appendChild(statsContainer);
@@ -455,12 +497,17 @@ function endGame() {
   const accuracy = Math.round(
     (gameStats.totalCorrect / gameStats.totalQuestions) * 100
   );
-  const avgTime =
-    Math.round((gameStats.totalTime / gameStats.totalQuestions) * 10) / 10;
+  const avgTime = Math.round((gameStats.totalTime / gameStats.totalQuestions) * 10) / 10;
 
   totalCorrectDisplay.textContent = `Respostas corretas: ${gameStats.totalCorrect} de ${gameStats.totalQuestions}`;
   accuracyDisplay.textContent = `Precisão: ${accuracy}%`;
-  avgTimeDisplay.textContent = `Tempo médio por questão: ${avgTime}s`;
+  
+  // Formata o tempo total da partida
+  const minutes = Math.floor(totalGameTime / 60);
+  const seconds = Math.floor(totalGameTime % 60);
+  const formattedTotalTime = `${minutes}m ${seconds}s`;
+  
+  avgTimeDisplay.textContent = `Tempo total da partida: ${formattedTotalTime} | Tempo médio por questão: ${avgTime.toFixed(1)}s`;
 
   // Mostra a tela de resultados
   showScreen(resultsScreen);
@@ -476,6 +523,9 @@ function renderChart() {
     const playerNames = players.map((player) => player.name);
     const correctAnswers = players.map((player) => player.correctAnswers);
     const playerScores = players.map((player) => player.score);
+    const avgTimes = players.map((player) => {
+      return player.questionsAnswerTime.reduce((acc, time) => acc + time, 0) / player.questionsAnswerTime.length;
+    });
 
     // Obtém o contexto 2D do canvas
     const chartCanvas = document.getElementById("performanceChart");
@@ -502,8 +552,13 @@ function renderChart() {
       backgroundColor: "rgba(52, 152, 219, 0.6)", // Azul
       borderColor: "rgba(52, 152, 219, 1)"
     };
+    
+    const tempoColors = {
+      backgroundColor: "rgba(243, 156, 18, 0.6)", // Laranja
+      borderColor: "rgba(243, 156, 18, 1)"
+    };
 
-    // Cria o gráfico de barras para acertos e pontos
+    // Cria o gráfico de barras para acertos, pontos e tempo médio
     window.performanceChart = new Chart(ctx, {
       type: "bar",
       data: {
@@ -525,6 +580,16 @@ function renderChart() {
             borderWidth: 1,
             order: 0,
             yAxisID: 'y1'
+          },
+          {
+            label: "Tempo Médio (s)",
+            data: avgTimes,
+            backgroundColor: tempoColors.backgroundColor,
+            borderColor: tempoColors.borderColor,
+            borderWidth: 1,
+            order: 2,
+            type: 'line',
+            yAxisID: 'y2'
           }
         ],
       },
@@ -556,6 +621,18 @@ function renderChart() {
               display: false
             }
           },
+          y2: {
+            beginAtZero: true,
+            position: 'right',
+            title: {
+              display: true,
+              text: "Tempo (s)",
+            },
+            grid: {
+              display: false
+            },
+            display: false // Oculta este eixo para evitar confusão visual
+          },
           x: {
             title: {
               display: true,
@@ -582,7 +659,11 @@ function renderChart() {
                 if (label) {
                   label += ': ';
                 }
-                label += context.raw;
+                if (label.includes("Tempo")) {
+                  label += context.raw.toFixed(1) + 's';
+                } else {
+                  label += context.raw;
+                }
                 return label;
               }
             }
@@ -607,7 +688,7 @@ function resetGame() {
   players.forEach((player) => {
     player.score = 0;
     player.correctAnswers = 0;
-    player.totalTime = 0;
+    player.questionsAnswerTime = [];
   });
 
   // Reinicia o jogo
@@ -618,6 +699,7 @@ function resetGame() {
     totalQuestions: 0,
     totalTime: 0,
   };
+  gameTimeElapsed = 0;
 
   // Atualiza o display
   updatePlayerDisplay();
@@ -626,6 +708,10 @@ function resetGame() {
 
   // Muda para a tela do jogo
   showScreen(gameScreen);
+  
+  // Reinicia o temporizador geral
+  gameStartTime = Date.now();
+  startGameTimer();
 
   // Gera a primeira questão
   generateQuestion();
@@ -679,67 +765,11 @@ function updateScore() {
 }
 
 /**
- * Inicia o timer para a questão atual com otimizações
- */
-function startTimer() {
-  timeRemaining = 30;
-  timeLeftDisplay.textContent = timeRemaining;
-  lastTimerUpdate = Date.now();
-
-  clearInterval(gameTimer);
-  gameTimer = setInterval(() => {
-    // Calcula o tempo decorrido desde a última atualização
-    const now = Date.now();
-    const elapsed = (now - lastTimerUpdate) / 1000;
-    lastTimerUpdate = now;
-    
-    // Se houver um atraso significativo, ajusta o tempo
-    if (elapsed > 1.5) {
-      timeRemaining -= Math.floor(elapsed);
-    } else {
-      timeRemaining--;
-    }
-    
-    // Não permite tempo negativo
-    if (timeRemaining < 0) timeRemaining = 0;
-    
-    timeLeftDisplay.textContent = timeRemaining;
-
-    // Efeito visual de urgência quando o tempo está acabando
-    // Usa classes CSS em vez de manipulação direta do estilo
-    if (timeRemaining <= 5) {
-      timeLeftDisplay.classList.add("time-critical");
-    } else {
-      timeLeftDisplay.classList.remove("time-critical");
-    }
-
-    // Tempo esgotado
-    if (timeRemaining <= 0) {
-      clearInterval(gameTimer);
-      // Resposta automática incorreta
-      if (!isProcessingAnswer) {
-        handleAnswerSubmission();
-      }
-    }
-  }, 1000);
-}
-
-/**
- * Reinicia o timer
- */
-function resetTimer() {
-  timeRemaining = 30;
-  timeLeftDisplay.textContent = timeRemaining;
-  timeLeftDisplay.classList.remove("time-critical");
-  clearInterval(gameTimer);
-}
-
-/**
  * Calcula os pontos com base no tempo utilizado
- * @param {number} timeUsed - Tempo utilizado para responder (em segundos)
+ * @param {number} responseTime - Tempo utilizado para responder (em segundos)
  * @returns {number} - Pontos ganhos
  */
-function calculatePoints(timeUsed) {
+function calculatePoints(responseTime) {
   // Pontuação base de acordo com a dificuldade
   let basePoints;
   switch (difficulty) {
@@ -758,11 +788,11 @@ function calculatePoints(timeUsed) {
 
   // Bônus por resposta rápida
   let timeBonus = 0;
-  if (timeUsed < 5) {
+  if (responseTime < 5) {
     timeBonus = 10;
-  } else if (timeUsed < 10) {
+  } else if (responseTime < 10) {
     timeBonus = 5;
-  } else if (timeUsed < 15) {
+  } else if (responseTime < 15) {
     timeBonus = 3;
   }
 
@@ -786,9 +816,10 @@ document.addEventListener("DOMContentLoaded", initializeEvents);
 
 // Adicionar esta CSS no seu arquivo de estilo
 /*
-.time-critical {
-  color: #e74c3c;
+.time-display {
+  font-size: 1.2rem;
   font-weight: bold;
+  color: #2980b9;
 }
 
 .pulse {
